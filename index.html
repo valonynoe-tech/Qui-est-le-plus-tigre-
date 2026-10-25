@@ -91,6 +91,13 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--paper);outline-
 .empty{text-align:center;background:var(--paper);border:3px dashed var(--ink);border-radius:20px;padding:22px 16px;line-height:1.35}
 .empty b{font-family:var(--display);font-weight:400;font-size:1.2rem;display:block;margin-bottom:4px}
 .foot{display:flex;gap:10px}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mode{background:var(--paper);border:3px solid var(--ink);border-radius:16px;padding:8px 10px 7px;box-shadow:0 4px 0 var(--ink);text-align:left;display:flex;flex-direction:column;gap:1px}
+.mode b{font-family:var(--display);font-weight:400;font-size:1.05rem;letter-spacing:.02em;line-height:1.1}
+.mode small{font-size:.8rem;line-height:1.15}
+.mode.on{background:var(--sun);transform:translateY(-2px)}
+.mode.tigre.on{background:var(--red);color:var(--paper)}
+.mode-badge{display:inline-block;background:var(--red);color:var(--paper);font-weight:800;font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px 0;border-radius:8px;margin-left:4px;border:2px solid var(--ink);vertical-align:1px}
 .foot .btn{flex:1}
 
 /* Éditeur */
@@ -140,6 +147,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--paper);outline-
 .duel .card{animation:none}
 .pop .card .em.polo.av{width:44px;height:44px}
 .card .nm{font-size:8.5px;font-weight:800;line-height:1.05;text-align:center;letter-spacing:.02em;position:relative;background:var(--ink);color:var(--sun);padding:2px 4px 1px;transform:rotate(-4deg);max-width:58px;text-transform:uppercase}
+.card .nm.long{font-size:7px;letter-spacing:0}
 .card.new{animation:dropIn .45s cubic-bezier(.2,1.5,.4,1) both}
 .card.punch-r{animation:punchR .65s ease both;z-index:2}
 .card.punch-l{animation:punchL .65s ease both;z-index:2}
@@ -157,7 +165,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--paper);outline-
 @keyframes boom{0%,45%{opacity:0;transform:translateX(-50%) scale(.2)}60%{opacity:1;transform:translateX(-50%) scale(1.25) rotate(-10deg)}100%{opacity:0;transform:translateX(-50%) scale(1) rotate(-10deg)}}
 @keyframes collapse{to{transform:translateY(50px) rotate(25deg);opacity:0}}
 .actions{background:var(--paper);border:3px solid var(--ink);border-radius:22px;padding:10px;box-shadow:0 5px 0 var(--ink);display:flex;flex-direction:column;gap:9px}
-.actions p{margin:0;text-align:center;font-weight:700;line-height:1.25;min-height:2.5em;display:flex;align-items:center;justify-content:center}
+.actions p{margin:0;text-align:center;font-weight:700;line-height:1.25;min-height:2.5em;text-wrap:balance}
 .actions p b{font-weight:800}
 .choice{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .choice .btn{display:flex;align-items:center;justify-content:center;gap:6px;font-size:1.1rem;padding:14px 8px 11px}
@@ -264,6 +272,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--paper);outline-
     </div>
     <div class="hint">Touche les persos dans l'ordre de passage. Le chiffre indique qui joue en premier.</div>
     <div class="scroll" id="playersList"></div>
+    <div class="modes" role="radiogroup" aria-label="Mode de jeu">
+      <button class="mode" data-mode="normal" role="radio"><b>Normal</b><small>Le paquet tel quel</small></button>
+      <button class="mode tigre" data-mode="tigre" role="radio"><b>Mode tigre</b><small>Beaucoup plus de POTEAUX</small></button>
+    </div>
     <div class="foot">
       <button class="btn paper" id="btnNewChar">+ Nouveau perso</button>
       <button class="btn mint" id="btnStart" disabled>Lancer</button>
@@ -296,7 +308,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--paper);outline-
     <div class="g-head">
       <div class="av" id="curAv"></div>
       <div class="who">
-        <small>À toi de jouer</small>
+        <small>À toi de jouer <span class="mode-badge" id="modeBadge" hidden>Mode tigre</span></small>
         <b id="curName"></b>
         <div class="pips" id="pips" aria-label="Victoires d'affilée"></div>
       </div>
@@ -465,24 +477,61 @@ null,
  +`<path d="M18 25 L27 27 M42 25 L33 27" fill="none" ${ST} stroke-width="2.8"/>`
  +`<path d="M27 37 L33 37 L30 41Z" fill="#FF6F8A" ${ST}/><path d="M30 41 L30 44 M26 46 Q30 48.5 34 46" fill="none" ${ST}/><circle cx="22" cy="44" r=".9" fill="${INK}"/><circle cx="38" cy="44" r=".9" fill="${INK}"/>`
 ];
-const animalSVG=i=>`<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${ART[i]()}</svg>`;
+const ART_NAMES=['Phasme','Escargot','Poule pondeuse','Carpe koï','Hamster','Paresseux','Pigeon','Axolotl','Hérisson','Crabe','Raton laveur','Oie','Chèvre','Ratel','Autruche','Casoar','Gorille','Crocodile','Ours brun','Bison','Hippopotame','Éléphant','Polo','Tigre'];
+const ARTS={};ART_NAMES.forEach((n,i)=>{if(ART[i])ARTS[n]=ART[i]});
+ARTS['Punaise de lit']=()=>twoStroke('M15 28 L5 21 M13 36 L3 37 M15 44 L6 52 M45 28 L55 21 M47 36 L57 37 M45 44 L54 52',1.8,'#8E3A1F')
+ +twoStroke('M26 13 L20 4 M34 13 L40 4',1.4,'#8E3A1F')
+ +`<ellipse cx="30" cy="35" rx="18" ry="16" fill="#B5502E" ${ST}/><path d="M16 31 Q30 36 44 31 M14 38 Q30 44 46 38 M16 45 Q30 50 44 45" fill="none" stroke="#7A2E17" stroke-width="1.8" stroke-linecap="round"/>`
+ +`<ellipse cx="23" cy="30" rx="4" ry="2.4" fill="#fff" opacity=".35"/><ellipse cx="30" cy="18" rx="8.5" ry="6.5" fill="#9A3F22" ${ST}/>`
+ +dot(26,17,2)+dot(34,17,2)+`<path d="M27 22 L28.5 24.5 L30 22 L31.5 24.5 L33 22" fill="#fff" ${ST} stroke-width="1.2"/>`,
+ARTS['Tique']=()=>twoStroke('M23 25 L9 14 M22 29 L5 27 M22 33 L6 40 M24 37 L11 50 M37 25 L51 14 M38 29 L55 27 M38 33 L54 40 M36 37 L49 50',1.8,'#4E3426')
+ +`<ellipse cx="30" cy="38" rx="16" ry="17" fill="#9C7B66" ${ST}/><path d="M19 31 C19 22 41 22 41 31 C41 37 35 40 30 40 C25 40 19 37 19 31Z" fill="#4E3426" ${ST}/>`
+ +`<ellipse cx="22" cy="46" rx="4" ry="3" fill="#fff" opacity=".3"/><path d="M26 19 C26 13 34 13 34 19Z" fill="#4E3426" ${ST}/><path d="M28 15 L27 9 M32 15 L33 9" fill="none" ${ST}/>`
+ +eye(25,31,3.2)+eye(35,31,3.2)+`<path d="M25 47 Q30 51 35 47" fill="none" ${ST}/>`,
+ARTS['Barracuda']=()=>`<path d="M47 30 L57 20 L55 32 L57 44 L47 35Z" fill="#7F93A6" ${ST}/><path d="M23 27 L28 18 L34 27Z M38 28 L42 21 L45 29Z" fill="#7F93A6" ${ST}/>`
+ +`<path d="M3 33 C11 25 28 24 44 28 L50 30 C52 31 52 34 50 35 L44 37 C28 40 12 39 3 33Z" fill="#C3CFDA" ${ST}/>`
+ +`<path d="M10 36 C22 39 34 39 46 36" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".8"/><path d="M23 29 L21 36 M29 28 L27 37 M35 28.5 L33 37" stroke="#5E6F80" stroke-width="2.2" stroke-linecap="round"/>`
+ +`<path d="M3 33 L18 34" fill="none" ${ST}/><path d="M5 33.2 L6.2 30.6 L7.6 33.4 L8.8 30.8 L10.2 33.6 L11.4 31 L12.8 33.8 L14 31.3 L15.4 34" fill="#fff" ${ST} stroke-width="1.1"/>`
+ +eye(17,29,3.4)+`<path d="M12 25 L21 27.5" fill="none" ${ST} stroke-width="2.8"/>`,
+ARTS['Sanglier']=()=>`<path d="M13 20 L9 6 L23 13Z" fill="#4A3326" ${ST}/><path d="${mir('M13 20 L9 6 L23 13Z')}" fill="#4A3326" ${ST}/>`
+ +`<path d="M30 11 C46 11 51 23 49 35 C47 47 40 55 30 55 C20 55 13 47 11 35 C9 23 14 11 30 11Z" fill="#6B4A35" ${ST}/>`
+ +`<path d="M19 15 L22 6 L26 13 L30 3 L34 13 L38 6 L41 15 C36 12 24 12 19 15Z" fill="#2E2018" ${ST}/>`
+ +dot(22,29,2.5)+dot(38,29,2.5)+`<path d="M16 23 L26 27.5 M44 23 L34 27.5" fill="none" ${ST} stroke-width="3.2"/>`
+ +`<ellipse cx="30" cy="43" rx="11.5" ry="8.5" fill="#C79A86" ${ST}/><ellipse cx="26" cy="43" rx="2.2" ry="3" fill="${INK}"/><ellipse cx="34" cy="43" rx="2.2" ry="3" fill="${INK}"/>`
+ +`<path d="M20 46 C13 46 11 39 13 34 C14 39 17 42 22 42Z" fill="#FFF8EC" ${ST}/><path d="${mir('M20 46 C13 46 11 39 13 34 C14 39 17 42 22 42Z')}" fill="#FFF8EC" ${ST}/>`,
+ARTS['Dacia Sandero']=()=>`<ellipse cx="31" cy="51" rx="27" ry="3" fill="${INK}" opacity=".18"/>`
+ +`<path d="M4 44 L4 37 C4 34 6 33 9 32 L16 31 L23 22 C24 21 26 20 28 20 L45 20 C48 20 50 21 51 23 L55 31 C57 32 58 34 58 37 L58 44 C58 46 57 47 55 47 L7 47 C5 47 4 46 4 44Z" fill="#E8323C" ${ST}/>`
+ +`<path d="M18 31 L24 23.5 L35 23.5 L35 31Z" fill="#BFE6FF" ${ST}/><path d="M38 31 L38 23.5 L46 23.5 C47.5 23.5 48.5 24.5 49.2 25.6 L52 31Z" fill="#BFE6FF" ${ST}/>`
+ +`<path d="M20 29 L24 25" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M36.5 32 L36.5 45" fill="none" ${ST} stroke-width="1.6"/><rect x="39" y="34" width="5" height="1.8" rx=".9" fill="${INK}"/>`
+ +`<path d="M4 41.5 L13 41.5" stroke="#6B6B6B" stroke-width="2.4" stroke-linecap="round"/><ellipse cx="7.5" cy="36" rx="2.6" ry="2" fill="#FFE14D" ${ST}/><rect x="55" y="34" width="3" height="4.5" rx="1" fill="#FF8A1F" ${ST} stroke-width="1.4"/>`
+ +[15,47].map(x=>`<circle cx="${x}" cy="47" r="6.5" fill="#2E2A28" ${ST}/><circle cx="${x}" cy="47" r="2.8" fill="#BFC6CC"/>`).join('');
+const animalSVG=n=>`<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${ARTS[n]()}</svg>`;
 
 /* ---------- Données ---------- */
-const ANIMALS=[ // [nom, dessin provisoire, exemplaires] — rangés du plus faible (force 1) au plus fort (force 24)
-  ['Phasme','🦗',2],['Escargot','🐌',2],['Poule pondeuse','🐔',3],['Carpe koï','🐟',2],['Hamster','🐹',2],
-  ['Paresseux','🦥',2],['Pigeon','🐦',4],['Axolotl','🦎',2],['Hérisson','🦔',2],['Crabe','🦀',3],
-  ['Raton laveur','🦝',2],['Oie','🪿',3],['Chèvre','🐐',2],['Ratel','🦡',2],['Autruche','🪶',2],
-  ['Casoar','🦤',2],['Gorille','🦍',2],['Crocodile','🐊',2],['Ours brun','🐻',2],['Bison','🦬',3],
-  ['Hippopotame','🦛',2],['Éléphant','🐘',2],['Polo',null,3],['Tigre','🐅',4]
+const ANIMALS=[ // [nom, exemplaires] — rangés du plus faible (force 1) au plus fort (force 24)
+  ['Phasme',2],['Punaise de lit',3],['Tique',2],['Escargot',2],['Poule pondeuse',3],['Carpe koï',2],
+  ['Paresseux',2],['Pigeon',4],['Axolotl',2],['Crabe',3],['Raton laveur',2],['Oie',3],
+  ['Ratel',2],['Barracuda',2],['Casoar',2],['Sanglier',3],['Dacia Sandero',2],['Gorille',2],
+  ['Crocodile',2],['Bison',2],['Hippopotame',2],['Éléphant',2],['Polo',3],['Tigre',4]
 ];
+const GAME_V=3;          // change quand le paquet change : une partie en pause d'une ancienne version est effacée
+const TIGRE_ODDS=1/15;   // mode tigre : chance de POTEAU visée à chaque pioche
 const CARD_COLORS=['#FFD23F','#19C2A8','#FF4F9A','#7B2FF7','#2F6BFF','#2BB24C'];
 const SKINS=['#FFE0C2','#F6C79A','#E2A675','#C27F4E','#8E5530','#5B3520'];
-const HAIRS=[['middle','Raie au milieu'],['fade','Dégradé'],['long','Cheveux longs'],['side','Sur le côté'],['curly','Bouclés'],['shaved','Rasé']];
+const HAIRS=[['middle','Raie au milieu'],['fade','Dégradé'],['side','Sur le côté'],['curly','Bouclés'],['shaved','Rasé'],['mullet','Mulet'],['long','Cheveux longs'],['bob','Carré'],['ponytail','Queue de cheval'],['bun','Chignon'],['pigtails','Couettes']];
+const FACES=[['round','Ronde'],['oval','Ovale'],['square','Carrée'],['pear','Poire']];
+const EYEC=[['#5A3A22','Marron'],['#2F7FD6','Bleus'],['#3E9B4F','Verts'],['#1E1A18','Noirs'],['#8A9AA6','Gris']];
+const BROWS=[['normal','Normaux'],['thick','Épais'],['mono','Mono-sourcil']];
+const HATS=[['none','Aucun'],['cap','Casquette'],['boarcap','Casquette sanglier'],['beanie','Bonnet'],['sombrero','Chapeau mexicain'],['cowboy','Cowboy'],['halo','Auréole']];
+const EARS=[['none','Aucune'],['studs','Clous'],['hoops','Anneaux'],['drops','Pendantes']];
+const TATTOOS=[['none','Aucun'],['star','Étoile joue'],['heart','Cœur cou'],['tribal','Tribal cou']];
+const COSTUMES=[['none','Aucun'],['dog','Costume de chien']];
+const AV_DEF={face:'round',eyes:'#5A3A22',brows:'normal',hat:'none',ear:'none',tattoo:'none',costume:'none'};
 const HAIRC=[['#1E1A18','Noir'],['#4A2C1A','Brun'],['#8A5A34','Châtain'],['#E8C15A','Blond'],['#C4501C','Roux'],['#A9A9A9','Gris']];
 const BEARDS=[['none','Aucune'],['stubble','3 jours'],['short','Courte'],['big','Grosse barbe']];
 const MOUS=[['none','Aucune'],['thin','Fine'],['thick','Épaisse'],['handle','Guidon']];
 const GLASSES=[['none','Aucune'],['round','Rondes'],['square','Carrées'],['sun','Soleil']];
-const TOPS=[['arg','Argentine'],['ol','OL'],['asm','ASM'],['red','Rouge','#E8323C'],['blue','Bleu','#2F6BFF'],['green','Vert','#2BB24C'],['purple','Violet','#7B2FF7'],['black','Noir','#2E2A28'],['pink','Rose','#FF5FA8']];
+const TOPS=[['arg','Argentine'],['ol','OL'],['asm','ASM'],['psg','PSG'],['flo','I ♥ Floriane'],['hairy','Torse poilu'],['red','Rouge','#E8323C'],['blue','Bleu','#2F6BFF'],['green','Vert','#2BB24C'],['purple','Violet','#7B2FF7'],['black','Noir','#2E2A28'],['pink','Rose','#FF5FA8']];
 const POLO={skin:'#FFE0C2',hair:'fade',hairColor:'#E8C15A',beard:'big',mous:'thick',glasses:'none',top:'red'};
 const EXPRS=['neutral','happy','sad','shocked','angry'];
 
@@ -500,30 +549,63 @@ const store={
 };
 const K_CHARS='tigre.persos',K_GAME='tigre.partie',K_SET='tigre.reglages';
 let chars=store.get(K_CHARS,[]);
-const S=Object.assign({music:true,sfx:true},store.get(K_SET,{}));
+const S=Object.assign({music:true,sfx:true,mode:'normal'},store.get(K_SET,{}));
 const saveSettings=()=>store.set(K_SET,S);
 
 /* ---------- Personnages (SVG) ---------- */
 let svgN=0;
 function shade(hex,amt){const n=parseInt(hex.slice(1),16);const f=v=>Math.max(0,Math.min(255,Math.round(v*(1+amt))));
   return '#'+((1<<24)+(f(n>>16)<<16)+(f(n>>8&255)<<8)+f(n&255)).toString(16).slice(1)}
-function torso(top,id,K){
-  const d='M10 124 C10 100 30 88 60 88 C90 88 110 100 110 124 Z';const T=TOPS.find(t=>t[0]===top)||TOPS[3];let inner;
-  if(top==='arg') inner='<rect x="0" y="80" width="120" height="50" fill="#fff"/>'+[12,32,52,72,92].map(x=>`<rect x="${x}" y="80" width="10" height="50" fill="#74ACDF"/>`).join('');
-  else if(top==='ol') inner='<rect x="0" y="80" width="120" height="50" fill="#fff"/><path d="M0 112 L120 98 L120 105 L0 119Z" fill="#E1251B"/><path d="M0 119 L120 105 L120 112 L0 126Z" fill="#1B3A8C"/>';
-  else if(top==='asm') inner='<rect x="0" y="80" width="120" height="50" fill="#FFD100"/><path d="M10 124 C10 100 30 88 60 88 C90 88 110 100 110 124 L98 124 C98 106 84 97 60 97 C36 97 22 106 22 124Z" fill="#0B2A6F"/><rect x="56" y="96" width="8" height="30" fill="#0B2A6F"/>';
-  else inner=`<rect x="0" y="80" width="120" height="50" fill="${T[2]}"/>`;
-  return `<defs><clipPath id="${id}t"><path d="${d}"/></clipPath></defs><g clip-path="url(#${id}t)">${inner}</g><path d="${d}" fill="none" stroke="${K}" stroke-width="2.5"/>`;
+const mir120=d=>d.replace(/(-?\d+\.?\d*) (-?\d+\.?\d*)/g,(m,x,y)=>`${+(120-x).toFixed(1)} ${y}`);
+const chest=H=>{let p='';[[100,46,74],[106,48,72],[112,52,68],[118,55,65]].forEach(([y,a,b])=>{for(let x=a;x<=b;x+=5)p+=`M${x} ${y} q1.6 -3.2 3.2 0 `});return `<path d="${p}" fill="none" stroke="${H}" stroke-width="1.8" stroke-linecap="round"/>`};
+function starPath(cx,cy,R,r){let p='';for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,q=i%2?r:R;p+=(i?'L':'M')+(cx+q*Math.cos(a)).toFixed(1)+' '+(cy+q*Math.sin(a)).toFixed(1)}return p+'Z'}
+function torso(av,id,K){
+  const top=av.top,d='M10 124 C10 100 30 88 60 88 C90 88 110 100 110 124 Z';const T=TOPS.find(t=>t[0]===top)||TOPS.find(t=>t[0]==='red');let inner,over='';
+  const R=c=>`<rect x="0" y="80" width="120" height="50" fill="${c}"/>`;
+  if(av.costume==='dog') inner=R('#D9A35A')+'<ellipse cx="60" cy="120" rx="22" ry="20" fill="#F3DDB0"/>';
+  else if(top==='arg') inner=R('#fff')+[12,32,52,72,92].map(x=>`<rect x="${x}" y="80" width="10" height="50" fill="#74ACDF"/>`).join('');
+  else if(top==='ol') inner=R('#fff')+'<path d="M0 112 L120 98 L120 105 L0 119Z" fill="#E1251B"/><path d="M0 119 L120 105 L120 112 L0 126Z" fill="#1B3A8C"/>';
+  else if(top==='asm') inner=R('#FFD100')+'<path d="M10 124 C10 100 30 88 60 88 C90 88 110 100 110 124 L98 124 C98 106 84 97 60 97 C36 97 22 106 22 124Z" fill="#0B2A6F"/><rect x="56" y="96" width="8" height="30" fill="#0B2A6F"/>';
+  else if(top==='psg') inner=R('#0A2A6B')+'<rect x="46" y="80" width="28" height="50" fill="#fff"/><rect x="49" y="80" width="22" height="50" fill="#DA291C"/>';
+  else if(top==='flo'){inner=R('#fff');over=`<text x="60" y="113" text-anchor="middle" font-family="'Arial Black',Arial,sans-serif" font-weight="900" font-size="7.6" fill="${K}">I <tspan fill="#E8323C">♥</tspan> FLORIANE</text>`}
+  else if(top==='hairy'){const Sk=av.skin;inner=R(Sk)+`<path d="M60 97 V124" stroke="${shade(Sk,-.2)}" stroke-width="1.6"/><circle cx="44" cy="104" r="1.8" fill="${shade(Sk,-.3)}"/><circle cx="76" cy="104" r="1.8" fill="${shade(Sk,-.3)}"/>`+chest(av.hairColor)}
+  else inner=R(T[2]);
+  return `<defs><clipPath id="${id}t"><path d="${d}"/></clipPath></defs><g clip-path="url(#${id}t)">${inner}${over}</g><path d="${d}" fill="none" stroke="${K}" stroke-width="2.5"/>`;
 }
-function avatarSVG(av,ex='neutral'){
-  const id='av'+(svgN++),Sk=av.skin,S2=shade(Sk,-.16),H=av.hairColor,H2=shade(H,-.3),K='#2B1408';
-  const st=`stroke="${K}" stroke-width="2.5" stroke-linejoin="round"`;
+function capSVG(c,c2,st,emblem=''){return `<path d="M30 33 C29 13 45 7 60 7 C75 7 91 13 90 33 Z" fill="${c}" ${st}/><path d="M60 8 L60 31 M45 11 C43 20 43 27 44 32 M75 11 C77 20 77 27 76 32" fill="none" stroke="${c2}" stroke-width="1.6"/><circle cx="60" cy="8" r="2.6" fill="${c2}" ${st}/>${emblem}<path d="M28 33 C42 29 78 29 92 33 C94 41 26 41 28 33Z" fill="${c2}" ${st}/>`}
+function avatarSVG(av0,ex='neutral'){
+  const av={...AV_DEF,...av0},id='av'+(svgN++),Sk=av.skin,S2=shade(Sk,-.16),H=av.hairColor,H2=shade(H,-.3),K='#2B1408';
+  const st=`stroke="${K}" stroke-width="2.5" stroke-linejoin="round"`,dog=av.costume==='dog',hs=`fill="${H}" ${st}`;
+  const F=({round:{x:[32,88],y:54},oval:{x:[35,85],y:54},square:{x:[31,89],y:52},pear:{x:[33,87],y:57}})[av.face]||{x:[32,88],y:54};
   let s=`<svg viewBox="0 0 120 124" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`;
-  if(av.hair==='long') s+=`<path d="M24 52 C20 18 42 8 60 8 C78 8 100 18 96 52 L99 96 C90 101 80 97 81 84 L39 84 C40 97 30 101 21 96 Z" fill="${H}" ${st}/>`;
-  s+=torso(av.top,id,K);
+  // cheveux (derrière)
+  if(!dog){
+    if(av.hair==='long') s+=`<path d="M24 52 C20 18 42 8 60 8 C78 8 100 18 96 52 L99 96 C90 101 80 97 81 84 L39 84 C40 97 30 101 21 96 Z" ${hs}/>`;
+    if(av.hair==='bob') s+=`<path d="M28 46 C25 18 44 9 60 9 C76 9 95 18 92 46 L93 78 C84 80 79 77 79 70 L41 70 C41 77 36 80 27 78 Z" ${hs}/>`;
+    if(av.hair==='ponytail') s+=`<path d="M84 24 C102 20 108 38 102 56 C99 64 92 68 88 62 C95 52 95 38 86 32Z" ${hs}/><circle cx="86" cy="27" r="4" fill="#FF4F9A" ${st}/>`;
+    if(av.hair==='bun') s+=`<circle cx="60" cy="12" r="11" ${hs}/><path d="M51 20 Q60 23 69 20" fill="none" stroke="#FF4F9A" stroke-width="3" stroke-linecap="round"/>`;
+  }
+  s+=torso(av,id,K);
+  if(!dog&&av.hair==='mullet') s+=`<path d="M34 58 C33 74 38 88 44 95 L76 95 C82 88 87 74 86 58 Z" ${hs}/>`;
   s+=`<path d="M50 68 L50 92 Q60 99 70 92 L70 68 Z" fill="${S2}" ${st}/>`;
-  s+=`<ellipse cx="32" cy="54" rx="6" ry="8" fill="${Sk}" ${st}/><ellipse cx="88" cy="54" rx="6" ry="8" fill="${Sk}" ${st}/>`;
-  s+=`<ellipse cx="60" cy="50" rx="28" ry="31" fill="${Sk}" ${st}/>`;
+  if(av.tattoo==='heart') s+=`<path d="M55 89 C50 85 52 81 55 83.5 C58 81 60 85 55 89Z" fill="${K}" opacity=".75"/>`;
+  if(av.tattoo==='tribal') s+=`<path d="M52 84 C55 88 58 86 60 89 C62 86 65 88 68 84 M56 91 L60 88 L64 91" fill="none" stroke="${K}" stroke-width="1.5" stroke-linecap="round" opacity=".8"/>`;
+  if(dog){
+    s+=`<circle cx="60" cy="46" r="39" fill="#D9A35A" ${st}/>`;
+    const ear='M27 26 C10 24 6 52 14 64 C20 70 28 62 28 50Z';
+    s+=`<path d="${ear}" fill="#8A5A2B" ${st}/><path d="${mir120(ear)}" fill="#8A5A2B" ${st}/>`;
+    s+=`<circle cx="49" cy="12" r="2.6" fill="${K}"/><circle cx="71" cy="12" r="2.6" fill="${K}"/><ellipse cx="60" cy="15.5" rx="4.2" ry="2.8" fill="${K}"/>`;
+  }else s+=`<ellipse cx="${F.x[0]}" cy="${F.y}" rx="6" ry="8" fill="${Sk}" ${st}/><ellipse cx="${F.x[1]}" cy="${F.y}" rx="6" ry="8" fill="${Sk}" ${st}/>`;
+  if(!dog&&av.hair==='pigtails'){const pt='M33 36 C20 28 8 40 12 56 C14 66 24 68 30 58 C26 52 28 44 34 42Z';s+=`<path d="${pt}" ${hs}/><path d="${mir120(pt)}" ${hs}/>`}
+  // tête
+  if(av.face==='oval') s+=`<ellipse cx="60" cy="51" rx="25" ry="33" fill="${Sk}" ${st}/>`;
+  else if(av.face==='square') s+=`<rect x="32" y="20" width="56" height="61" rx="15" fill="${Sk}" ${st}/>`;
+  else if(av.face==='pear') s+=`<path d="M60 20 C73 20 80 30 82 42 C89 57 85 81 60 81 C35 81 31 57 38 42 C40 30 47 20 60 20Z" fill="${Sk}" ${st}/>`;
+  else s+=`<ellipse cx="60" cy="50" rx="28" ry="31" fill="${Sk}" ${st}/>`;
+  if(!dog) F.x.forEach(x=>{const y=F.y+7;
+    if(av.ear==='studs') s+=`<circle cx="${x}" cy="${y}" r="2.3" fill="#EAF6FF" stroke="${K}" stroke-width="1.4"/>`;
+    if(av.ear==='hoops') s+=`<circle cx="${x}" cy="${y+4}" r="4.5" fill="none" stroke="${K}" stroke-width="3.8"/><circle cx="${x}" cy="${y+4}" r="4.5" fill="none" stroke="#FFD23F" stroke-width="2"/>`;
+    if(av.ear==='drops') s+=`<path d="M${x} ${y} L${x} ${y+4}" stroke="${K}" stroke-width="1.4"/><path d="M${x} ${y+4} l3 4 l-3 4 l-3 -4Z" fill="#FF4F9A" stroke="${K}" stroke-width="1.4"/>`;});
   // barbe
   if(av.beard==='stubble') s+=`<path d="M33 58 C34 76 46 81 60 81 C74 81 86 76 87 58 C84 69 74 75 60 75 C46 75 36 69 33 58 Z" fill="${H}" opacity=".4"/>`;
   if(av.beard==='short') s+=`<path d="M32 54 C32 80 46 86 60 86 C74 86 88 80 88 54 C84 68 74 76 60 76 C46 76 36 68 32 54Z" fill="${H}" ${st}/>`;
@@ -534,13 +616,16 @@ function avatarSVG(av,ex='neutral'){
   // yeux
   if(av.glasses!=='sun'){
     if(ex==='happy') s+=`<path d="M43 53 Q49 45 55 53 M65 53 Q71 45 77 53" stroke="${K}" stroke-width="3.2" fill="none" stroke-linecap="round"/>`;
-    else{const big=ex==='shocked',rx=big?7.5:6,ry=big?8.5:6.5,pr=big?2.4:3.3,dy=ex==='sad'?2:0;
-      s+=`<ellipse cx="49" cy="51" rx="${rx}" ry="${ry}" fill="#fff" stroke="${K}" stroke-width="2"/><ellipse cx="71" cy="51" rx="${rx}" ry="${ry}" fill="#fff" stroke="${K}" stroke-width="2"/><circle cx="50" cy="${51+dy}" r="${pr}" fill="${K}"/><circle cx="70" cy="${51+dy}" r="${pr}" fill="${K}"/>`;
+    else{const big=ex==='shocked',rx=big?7.5:6,ry=big?8.5:6.5,ir=big?3.1:3.7,dy=ex==='sad'?2:0;
+      s+=`<ellipse cx="49" cy="51" rx="${rx}" ry="${ry}" fill="#fff" stroke="${K}" stroke-width="2"/><ellipse cx="71" cy="51" rx="${rx}" ry="${ry}" fill="#fff" stroke="${K}" stroke-width="2"/>`;
+      [50,70].forEach(x=>{s+=`<circle cx="${x}" cy="${51+dy}" r="${ir}" fill="${av.eyes}"/><circle cx="${x}" cy="${51+dy}" r="${(ir*.5).toFixed(1)}" fill="${K}"/><circle cx="${x+1.3}" cy="${49.8+dy}" r=".95" fill="#fff"/>`});
       if(ex==='angry') s+=`<path d="M42 45 L56 49 L56 43 L42 43Z M78 45 L64 49 L64 43 L78 43Z" fill="${Sk}"/>`;}
   }
   // sourcils
   const B={neutral:'M42 41 L55 40 M65 40 L78 41',happy:'M42 40 Q48 35 55 38 M65 38 Q72 35 78 40',sad:'M42 41 L55 36 M65 36 L78 41',angry:'M42 37 L56 44 M64 44 L78 37',shocked:'M42 35 Q48 29 55 33 M65 33 Q72 29 78 35'};
-  s+=`<path d="${B[ex]||B.neutral}" stroke="${av.hair==='shaved'?H2:H}" stroke-width="4.2" fill="none" stroke-linecap="round"/>`;
+  const BM={neutral:'M42 41 Q60 37 78 41',happy:'M42 39 Q51 33 60 37 Q69 33 78 39',sad:'M42 42 Q52 34 60 36 Q68 34 78 42',angry:'M42 37 L60 45 L78 37',shocked:'M42 35 Q51 28 60 33 Q69 28 78 35'};
+  const bw=av.brows==='thick'?7:av.brows==='mono'?5.4:4.2;
+  s+=`<path d="${av.brows==='mono'?(BM[ex]||BM.neutral):(B[ex]||B.neutral)}" stroke="${av.hair==='shaved'?H2:H}" stroke-width="${bw}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
   // nez
   s+=`<ellipse cx="60" cy="60" rx="4.5" ry="4" fill="${S2}"/>`;
   // bouche
@@ -554,27 +639,43 @@ function avatarSVG(av,ex='neutral'){
   if(av.mous==='thin') s+=`<path d="M50 66 C54 62 58 63 60 65 C62 63 66 62 70 66 C66 66.5 62 67 60 67 C58 67 54 66.5 50 66Z" fill="${H}" stroke="${K}" stroke-width="1.5"/>`;
   if(av.mous==='thick') s+=`<path d="M45 68 C48 59 56 60 60 63 C64 60 72 59 75 68 C69 69 64 68.5 60 67 C56 68.5 51 69 45 68Z" fill="${H}" ${st}/>`;
   if(av.mous==='handle') s+=`<path d="M42 61 C40 67 46 71 51 67 C55 64 58 63 60 65 C62 63 65 64 69 67 C74 71 80 67 78 61 C77 65 73 66 70 63 C66 60 62 60 60 62 C58 60 54 60 50 63 C47 66 43 65 42 61Z" fill="${H}" ${st}/>`;
+  if(av.tattoo==='star') s+=`<path d="${starPath(81,63,3.8,1.6)}" fill="${K}" opacity=".8"/>`;
   // lunettes
   if(av.glasses==='round') s+=`<g fill="rgba(255,255,255,.22)" stroke="${K}" stroke-width="2.8"><circle cx="49" cy="51" r="9.5"/><circle cx="71" cy="51" r="9.5"/></g><path d="M58.5 50 Q60 48 61.5 50 M39.5 49 L32 47 M80.5 49 L88 47" stroke="${K}" stroke-width="2.8" fill="none"/>`;
   if(av.glasses==='square') s+=`<g fill="rgba(255,255,255,.22)" stroke="${K}" stroke-width="2.8"><rect x="38.5" y="43" width="21" height="16" rx="4"/><rect x="60.5" y="43" width="21" height="16" rx="4"/></g><path d="M38.5 48 L32 47 M81.5 48 L88 47" stroke="${K}" stroke-width="2.8"/>`;
   if(av.glasses==='sun') s+=`<g fill="#1D1D1D" stroke="${K}" stroke-width="2.8"><path d="M37 44 H59 V52 C59 59 53 61 48 61 C42 61 37 58 37 52Z"/><path d="M61 44 H83 V52 C83 58 78 61 72 61 C67 61 61 59 61 52Z"/></g><path d="M41 48 L47 47 M65 48 L71 47" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".7"/><path d="M37 46 L32 46 M83 46 L88 46" stroke="${K}" stroke-width="2.8"/>`;
   // cheveux (devant)
-  const hs=`fill="${H}" ${st}`;
-  if(av.hair==='middle') s+=`<path d="M30 48 C27 20 44 11 60 11 C76 11 93 20 90 48 C86 36 76 30 64 31 L60 23 L56 31 C44 30 34 36 30 48 Z" ${hs}/>`;
-  if(av.hair==='fade') s+=`<path d="M32 40 C31 46 31 52 33 58 L36 58 L36 38 Z M88 40 C89 46 89 52 87 58 L84 58 L84 38Z" fill="${H}" opacity=".45"/><path d="M33 40 C31 19 46 12 60 12 C74 12 89 19 87 40 C80 30 70 26 60 26 C50 26 40 30 33 40 Z" ${hs}/>`;
-  if(av.hair==='long') s+=`<path d="M30 46 C29 20 45 12 60 12 C75 12 91 20 90 46 C84 32 72 27 60 28 C48 27 36 32 30 46 Z" ${hs}/><path d="M30 40 C25 56 27 70 31 82 L37 80 C35 66 34 54 36 44Z M90 40 C95 56 93 70 89 82 L83 80 C85 66 86 54 84 44Z" ${hs}/>`;
-  if(av.hair==='side') s+=`<path d="M30 46 C27 20 46 10 66 11 C84 12 94 25 90 44 C87 35 82 30 76 28 C64 32 46 31 37 37 C34 39 31 42 30 46Z" ${hs}/><path d="M42 21 C55 16 70 17 81 25" fill="none" stroke="${H2}" stroke-width="2.2" stroke-linecap="round"/>`;
-  if(av.hair==='curly'){let c='';for(let i=0;i<=10;i++){const a=Math.PI*(1.06+i*.088),x=60+30*Math.cos(a),y=40+24*Math.sin(a);c+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9" fill="${H}" ${st}/>`}
-    s+=c+`<ellipse cx="60" cy="27" rx="25" ry="12" fill="${H}"/>`;}
-  if(av.hair==='shaved') s+=`<path d="M32 42 C31 20 46 15 60 15 C74 15 89 20 88 42 C80 31 70 27 60 27 C50 27 40 31 32 42Z" fill="${H}" opacity=".32"/>`;
+  if(!dog){
+    if(av.hair==='middle') s+=`<path d="M30 48 C27 20 44 11 60 11 C76 11 93 20 90 48 C86 36 76 30 64 31 L60 23 L56 31 C44 30 34 36 30 48 Z" ${hs}/>`;
+    if(av.hair==='fade') s+=`<path d="M32 40 C31 46 31 52 33 58 L36 58 L36 38 Z M88 40 C89 46 89 52 87 58 L84 58 L84 38Z" fill="${H}" opacity=".45"/><path d="M33 40 C31 19 46 12 60 12 C74 12 89 19 87 40 C80 30 70 26 60 26 C50 26 40 30 33 40 Z" ${hs}/>`;
+    if(av.hair==='long') s+=`<path d="M30 46 C29 20 45 12 60 12 C75 12 91 20 90 46 C84 32 72 27 60 28 C48 27 36 32 30 46 Z" ${hs}/><path d="M30 40 C25 56 27 70 31 82 L37 80 C35 66 34 54 36 44Z M90 40 C95 56 93 70 89 82 L83 80 C85 66 86 54 84 44Z" ${hs}/>`;
+    if(av.hair==='side') s+=`<path d="M30 46 C27 20 46 10 66 11 C84 12 94 25 90 44 C87 35 82 30 76 28 C64 32 46 31 37 37 C34 39 31 42 30 46Z" ${hs}/><path d="M42 21 C55 16 70 17 81 25" fill="none" stroke="${H2}" stroke-width="2.2" stroke-linecap="round"/>`;
+    if(av.hair==='curly'){let c='';for(let i=0;i<=10;i++){const a=Math.PI*(1.06+i*.088),x=60+30*Math.cos(a),y=40+24*Math.sin(a);c+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9" fill="${H}" ${st}/>`}
+      s+=c+`<ellipse cx="60" cy="27" rx="25" ry="12" fill="${H}"/>`;}
+    if(av.hair==='shaved') s+=`<path d="M32 42 C31 20 46 15 60 15 C74 15 89 20 88 42 C80 31 70 27 60 27 C50 27 40 31 32 42Z" fill="${H}" opacity=".32"/>`;
+    if(av.hair==='mullet') s+=`<path d="M45 15 L49 5 L54 12 L60 3 L66 12 L71 5 L75 15Z" ${hs}/><path d="M32 44 C30 19 46 12 60 12 C74 12 90 19 88 44 C84 34 74 28 60 28 C46 28 36 34 32 44 Z" ${hs}/>`;
+    if(av.hair==='bob') s+=`<path d="M31 46 C30 22 44 13 60 13 C76 13 90 22 89 46 C86 40 82 37 78 37 L73 31 L67 37 L60 30 L53 37 L47 31 L42 37 C38 37 34 40 31 46Z" ${hs}/>`;
+    if(av.hair==='ponytail') s+=`<path d="M30 46 C27 20 44 11 60 11 C76 11 93 20 90 46 C86 32 74 26 60 26 C46 26 34 32 30 46Z" ${hs}/><path d="M40 20 C50 15 66 15 82 22" fill="none" stroke="${H2}" stroke-width="2.2" stroke-linecap="round"/>`;
+    if(av.hair==='bun'||av.hair==='pigtails') s+=`<path d="M30 46 C28 22 44 14 60 14 C76 14 92 22 90 46 C86 34 74 28 60 28 C46 28 34 34 30 46Z" ${hs}/>`+(av.hair==='pigtails'?`<path d="M60 15 L60 27" stroke="${H2}" stroke-width="2.2" stroke-linecap="round"/><circle cx="32" cy="40" r="3.6" fill="#FF4F9A" ${st}/><circle cx="88" cy="40" r="3.6" fill="#FF4F9A" ${st}/>`:'');
+    // couvre-chefs
+    if(av.hat==='cap') s+=capSVG('#E8323C','#B71F28',st);
+    if(av.hat==='boarcap') s+=capSVG('#5E6B3A','#3F4A25',st,`<g transform="translate(60 21)"><path d="M-5 -3 L-7 -9 L-1 -6Z M5 -3 L7 -9 L1 -6Z" fill="#3A2414" stroke="${K}" stroke-width="1.2"/><circle r="6.2" fill="#3A2414" stroke="${K}" stroke-width="1.2"/><ellipse cy="2.2" rx="3.4" ry="2.4" fill="#C79A86" stroke="${K}" stroke-width="1"/><path d="M-3.4 3 C-6 2.6 -6.2 -.6 -5.2 -1.6 M3.4 3 C6 2.6 6.2 -.6 5.2 -1.6" stroke="#fff" stroke-width="1.4" fill="none" stroke-linecap="round"/><circle cx="-2.4" cy="-2.2" r="1" fill="#FF5A4F"/><circle cx="2.4" cy="-2.2" r="1" fill="#FF5A4F"/></g>`);
+    if(av.hat==='beanie') s+=`<path d="M30 36 C28 13 45 7 60 7 C75 7 92 13 90 36Z" fill="#2F6BFF" ${st}/><path d="M29 29 C45 25 75 25 91 29 L91 38 C75 34 45 34 29 38Z" fill="#1F4FCC" ${st}/><path d="M36 28 V36 M44 27 V35 M52 26.5 V34.5 M60 26.3 V34.3 M68 26.5 V34.5 M76 27 V35 M84 28 V36" stroke="#5B8CFF" stroke-width="1.6"/><circle cx="60" cy="6" r="6" fill="#fff" ${st}/>`;
+    if(av.hat==='sombrero') s+=`<ellipse cx="60" cy="27" rx="52" ry="9" fill="#F2C14E" ${st}/><ellipse cx="60" cy="27" rx="44" ry="6" fill="none" stroke="#E8323C" stroke-width="2" stroke-dasharray="4 3"/><path d="M43 27 C42 4 78 4 77 27Z" fill="#F2C14E" ${st}/><path d="M45 20 L49.5 15 L54 20 L58.5 15 L63 20 L67.5 15 L72 20 L75 17" fill="none" stroke="#E8323C" stroke-width="2.2" stroke-linejoin="round"/><path d="M44 23.5 L76 23.5" stroke="#2BB24C" stroke-width="2.2"/>`;
+    if(av.hat==='cowboy') s+=`<g transform="translate(0 -4)"><path d="M10 24 C16 36 38 34 60 34 C82 34 104 36 110 24 C111 34 98 42 60 42 C22 42 9 34 10 24Z" fill="#A0662F" ${st}/><path d="M38 35 C35 20 39 7 48 7 C53 7 56 11 60 11 C64 11 67 7 72 7 C81 7 85 20 82 35Z" fill="#B87838" ${st}/><path d="M37.6 28 C50 30 70 30 82.4 28 L82 34 C70 36 50 36 38 34Z" fill="#3A2414"/></g>`;
+  }
+  if(av.hat==='halo') s+=`<ellipse cx="60" cy="6.5" rx="21" ry="4.5" fill="none" stroke="${K}" stroke-width="6.5"/><ellipse cx="60" cy="6.5" rx="21" ry="4.5" fill="none" stroke="#FFD23F" stroke-width="3.6"/>`;
   return s+'</svg>';
 }
-const randomAv=()=>({skin:pick(SKINS),hair:pick(HAIRS)[0],hairColor:pick(HAIRC)[0],beard:pick(BEARDS)[0],mous:pick(MOUS)[0],glasses:pick(GLASSES)[0],top:pick(TOPS)[0]});
+const rare=(L,p)=>Math.random()<p?pick(L.slice(1))[0]:L[0][0];
+const randomAv=()=>({skin:pick(SKINS),face:pick(FACES)[0],hair:pick(HAIRS)[0],hairColor:pick(HAIRC)[0],eyes:pick(EYEC)[0],brows:rare(BROWS,.3),beard:pick(BEARDS)[0],mous:pick(MOUS)[0],glasses:pick(GLASSES)[0],hat:rare(HATS,.3),ear:rare(EARS,.25),tattoo:rare(TATTOOS,.2),top:pick(TOPS)[0],costume:'none'});
 
 /* ---------- Sons (synthétisés, originaux) ---------- */
 const mf=m=>440*Math.pow(2,(m-69)/12);
-const BASS=[48,0,60,0,48,0,60,0,43,0,55,0,43,0,55,0,45,0,57,0,45,0,57,0,41,0,53,0,41,0,53,0];
-const MEL=[72,0,76,0,79,0,76,0,74,0,71,0,67,0,0,0,72,0,76,0,81,0,79,76,77,0,74,0,72,0,0,0];
+// Air original « banquet au village » : 6/8, ré mixolydien, 16 mesures (A puis B) ; -1 = note tenue, 0 = silence
+const TUNE=[74,74,78,81,-1,78, 79,78,76,74,-1,69, 71,74,79,83,-1,81, 79,76,78,76,-1,-1, 74,74,78,81,-1,86, 84,83,81,79,-1,76, 78,81,79,76,72,69, 74,-1,-1,74,0,0,
+  81,-1,83,84,-1,81, 79,-1,81,83,-1,79, 78,-1,79,81,79,78, 76,-1,-1,69,71,72, 74,-1,76,78,-1,74, 79,-1,78,76,-1,72, 71,74,76,78,76,72, 74,-1,-1,74,0,0];
+const ROOTS=[50,43,43,45,50,48,45,50, 45,43,50,45,50,48,43,50];
 const Snd={ctx:null,master:null,mus:null,timer:null,step:0,next:0,
   init(){
     if(this.ctx){if(this.ctx.state==='suspended')this.ctx.resume();return true}
@@ -606,13 +707,26 @@ const Snd={ctx:null,master:null,mus:null,timer:null,step:0,next:0,
       o.connect(bp);bp.connect(g);g.connect(this.master);o.start(t);l.start(t);o.stop(t+1.8);l.stop(t+1.8);
       this.noise(t,.4,.4,600);this.tone(110,t,.5,{type:'sine',to:40,vol:.6});}
   },
-  startMusic(){if(!S.music||!this.init()||this.timer)return;this.next=this.ctx.currentTime+.1;this.step=0;this.timer=setInterval(()=>this.sched(),60)},
-  stopMusic(){clearInterval(this.timer);this.timer=null},
-  sched(){const e=60/128/2;
-    while(this.next<this.ctx.currentTime+.25){const i=this.step%32;
-      if(BASS[i])this.tone(mf(BASS[i]),this.next,e*.9,{type:'triangle',vol:.28,dest:this.mus});
-      if(MEL[i])this.tone(mf(MEL[i]),this.next,e*.75,{type:'square',vol:.06,dest:this.mus});
-      if(i%2===1)this.noise(this.next,.04,.05,7000,'highpass',this.mus);
+  flute(f,t,d){const c=this.ctx,o=c.createOscillator(),g=c.createGain(),l=c.createOscillator(),lg=c.createGain();
+    o.type='triangle';o.frequency.setValueAtTime(f,t);l.frequency.value=5.6;lg.gain.setValueAtTime(0,t);lg.gain.linearRampToValueAtTime(f*.012,t+Math.min(.15,d));
+    l.connect(lg);lg.connect(o.frequency);
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.16,t+.025);g.gain.setValueAtTime(.13,t+Math.max(.03,d-.05));g.gain.exponentialRampToValueAtTime(.0001,t+d+.04);
+    o.connect(g);g.connect(this.mus);o.start(t);l.start(t);o.stop(t+d+.08);l.stop(t+d+.08);
+    this.tone(f/2,t,Math.max(.05,d*.9),{type:'square',vol:.022,dest:this.mus})},
+  startMusic(){if(!S.music||!this.init()||this.timer)return;const c=this.ctx;
+    this.drone=[50,57].map(m=>{const o=c.createOscillator(),f=c.createBiquadFilter(),g=c.createGain();o.type='sawtooth';o.frequency.value=mf(m);f.type='lowpass';f.frequency.value=650;
+      g.gain.setValueAtTime(.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(.035,c.currentTime+.8);o.connect(f);f.connect(g);g.connect(this.mus);o.start();return {o,g}});
+    this.next=c.currentTime+.1;this.step=0;this.timer=setInterval(()=>this.sched(),60)},
+  stopMusic(){clearInterval(this.timer);this.timer=null;
+    if(this.drone){const t=this.ctx.currentTime;this.drone.forEach(({o,g})=>{try{g.gain.cancelScheduledValues(t);g.gain.setValueAtTime(Math.max(g.gain.value,.0002),t);g.gain.exponentialRampToValueAtTime(.0001,t+.3);o.stop(t+.35)}catch(e){}});this.drone=null}},
+  sched(){const e=.17;
+    while(this.next<this.ctx.currentTime+.3){const i=this.step%96,pos=i%6,root=ROOTS[Math.floor(i/6)],t=this.next,n=TUNE[i];
+      if(n>0){let len=1;while(TUNE[(i+len)%96]===-1)len++;this.flute(mf(n),t,e*len*.92)}
+      if(pos===0)this.tone(mf(root),t,e*1.7,{type:'triangle',vol:.32,dest:this.mus});
+      if(pos===3){this.tone(mf(root+7),t,e*1.5,{type:'triangle',vol:.24,dest:this.mus});this.tone(mf(root+12),t,e*.8,{type:'sawtooth',vol:.03,dest:this.mus});this.tone(mf(root+19),t,e*.8,{type:'sawtooth',vol:.025,dest:this.mus})}
+      if(pos===0||pos===3)this.tone(pos?95:120,t,.13,{type:'sine',to:45,vol:pos?.25:.38,dest:this.mus});
+      if(pos===2||pos===5)this.noise(t,.07,.07,6500,'highpass',this.mus);
+      else if(pos===1||pos===4)this.noise(t,.04,.03,7500,'highpass',this.mus);
       this.next+=e;this.step++}}
 };
 function vibrate(){try{if(navigator.vibrate)navigator.vibrate([300,80,300,80,600])}catch(e){}}
@@ -626,8 +740,9 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-back]');if
 
 /* ---------- Accueil ---------- */
 function renderHome(){
-  const g=store.get(K_GAME,null),r=$('#btnResume');r.hidden=!g;
-  if(g)$('#resumeInfo').textContent=`${g.players.filter(p=>!p.out).length} joueurs · au tour de ${g.players[g.cur].name}`;
+  let g=store.get(K_GAME,null);if(g&&g.v!==GAME_V){store.del(K_GAME);g=null}
+  const r=$('#btnResume');r.hidden=!g;
+  if(g)$('#resumeInfo').textContent=`${g.mode==='tigre'?'Mode tigre · ':''}${g.players.filter(p=>!p.out).length} joueurs · au tour de ${g.players[g.cur].name}`;
   $('#homeSound').textContent='Son : '+(S.music||S.sfx?'oui':'non');
 }
 $('#btnCreve').onclick=()=>{Snd.init();Snd.fx('click');selected=[];show('players')};
@@ -644,6 +759,7 @@ function renderPlayers(){
   else L.innerHTML=`<div class="tiles">${chars.map(c=>{const n=selected.indexOf(c.id);return `<div class="tile-wrap">
     <button class="tile ${n>=0?'on':''}" data-pick="${c.id}"><span class="av">${avatarSVG(c.av,n>=0?'happy':'neutral')}</span><span class="nm">${esc(c.name)}</span>${n>=0?`<span class="badge">${n+1}</span>`:''}</button>
     <button class="tile-edit" data-edit="${c.id}" aria-label="Modifier ${esc(c.name)}">${pencil}</button></div>`}).join('')}</div>`;
+  document.querySelectorAll('.mode').forEach(b=>{const on=b.dataset.mode===S.mode;b.classList.toggle('on',on);b.setAttribute('aria-checked',on)});
   $('#btnStart').disabled=selected.length<2;
   $('#btnStart').textContent=selected.length<2?'Lancer (2 min.)':`Lancer (${selected.length})`;
 }
@@ -652,13 +768,14 @@ $('#playersList').addEventListener('click',e=>{
   if(ed){Snd.fx('click');openEditor(chars.find(c=>c.id===ed.dataset.edit),()=>show('players'));return}
   if(p){Snd.fx('click');const id=p.dataset.pick,i=selected.indexOf(id);if(i>=0)selected.splice(i,1);else if(selected.length<12)selected.push(id);renderPlayers()}
 });
+document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{Snd.fx('click');S.mode=b.dataset.mode;saveSettings();renderPlayers()});
 $('#btnNewChar').onclick=()=>{Snd.fx('click');openEditor(null,c=>{if(c&&!selected.includes(c.id))selected.push(c.id);show('players')})};
 $('#btnStart').onclick=()=>{Snd.fx('turn');newGame(selected.map(id=>chars.find(c=>c.id===id)));show('game');renderGame()};
 
 /* ---------- Éditeur ---------- */
 let ED=null,edExpr=0,edDone=null;
 function openEditor(c,done){
-  ED=c?{id:c.id,name:c.name,av:{...c.av}}:{id:null,name:'',av:randomAv()};edDone=done;edExpr=0;
+  ED=c?{id:c.id,name:c.name,av:{...AV_DEF,...c.av}}:{id:null,name:'',av:randomAv()};edDone=done;edExpr=0;
   $('#edTitle').textContent=c?'Modifier le perso':'Nouveau perso';$('#edName').value=ED.name;$('#edDelete').hidden=!c;
   renderEditor();show('editor');
 }
@@ -667,8 +784,10 @@ function renderEditor(){
   const chipGroup=(title,key,list)=>`<div class="group"><h3>${title}</h3><div class="chips">${list.map(([k,l])=>`<button class="chip ${ED.av[key]===k?'on':''}" data-k="${key}" data-v="${k}"><span class="av">${avatarSVG({...ED.av,[key]:k})}</span><span>${l}</span></button>`).join('')}</div></div>`;
   const swGroup=(title,key,list)=>`<div class="group"><h3>${title}</h3><div class="chips">${list.map(([k,l])=>`<button class="sw ${ED.av[key]===k?'on':''}" style="background:${k}" data-k="${key}" data-v="${k}" aria-label="${l||k}"></button>`).join('')}</div></div>`;
   const sc=$('#edOptions').scrollTop;
-  $('#edOptions').innerHTML=swGroup('Peau','skin',SKINS.map(s=>[s,'']))+chipGroup('Coupe','hair',HAIRS)+swGroup('Couleur des cheveux','hairColor',HAIRC)
-    +chipGroup('Barbe','beard',BEARDS)+chipGroup('Moustache','mous',MOUS)+chipGroup('Lunettes','glasses',GLASSES)+chipGroup('Maillot','top',TOPS.map(t=>[t[0],t[1]]));
+  $('#edOptions').innerHTML=swGroup('Peau','skin',SKINS.map(s=>[s,'']))+chipGroup('Forme de tête','face',FACES)+chipGroup('Coupe','hair',HAIRS)
+    +swGroup('Couleur des cheveux','hairColor',HAIRC)+swGroup('Couleur des yeux','eyes',EYEC)+chipGroup('Sourcils','brows',BROWS)
+    +chipGroup('Barbe','beard',BEARDS)+chipGroup('Moustache','mous',MOUS)+chipGroup('Lunettes','glasses',GLASSES)+chipGroup('Couvre-chef','hat',HATS)
+    +chipGroup("Boucles d'oreilles",'ear',EARS)+chipGroup('Tatouage','tattoo',TATTOOS)+chipGroup('Haut','top',TOPS.map(t=>[t[0],t[1]]))+chipGroup('Costume','costume',COSTUMES);
   $('#edOptions').scrollTop=sc;
 }
 $('#edOptions').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b)return;Snd.fx('click');
@@ -696,21 +815,29 @@ function draw(){
     if(!G.deck.length)G.deck=buildDeck();}
   return G.deck.pop();
 }
-function buildDeck(){const d=[];ANIMALS.forEach((a,i)=>{for(let k=0;k<a[2];k++)d.push({id:uid(),a:i})});return shuffle(d)}
+function drawBoost(ref){ // mode tigre : coup de pouce caché pour que la chance de POTEAU soit TIGRE_ODDS
+  if(!G.deck.length){G.deck=shuffle(G.discard);G.discard=[]}
+  if(!G.deck.length)return draw();
+  const q=G.deck.filter(c=>c.a===ref.a).length/G.deck.length,f=Math.max(0,(TIGRE_ODDS-q)/(1-q));
+  if(Math.random()<f){for(const pile of [G.deck,G.discard]){const i=pile.findIndex(c=>c.a===ref.a);if(i>=0)return pile.splice(i,1)[0]}}
+  return draw();
+}
+function buildDeck(){const d=[];ANIMALS.forEach((a,i)=>{for(let k=0;k<a[1];k++)d.push({id:uid(),a:i})});return shuffle(d)}
 function newGame(list){
-  G={players:list.map(c=>({cid:c.id,name:c.name,av:{...c.av},g:0,c:0,out:false})),cur:0,streak:0,rows:[],deck:buildDeck(),discard:[]};
+  G={v:GAME_V,mode:S.mode==='tigre'?'tigre':'normal',players:list.map(c=>({cid:c.id,name:c.name,av:{...c.av},g:0,c:0,out:false})),cur:0,streak:0,rows:[],deck:buildDeck(),discard:[]};
   for(let r=0;r<4;r++)G.rows.push([draw()]);sel=null;saveGame();
 }
 const saveGame=()=>{if(G)store.set(K_GAME,G)};
 const P=()=>G.players[G.cur];
 const animalName=c=>ANIMALS[c.a][0];
 function cardHTML(c,extra=''){
-  const A=ANIMALS[c.a],art=ART[c.a]?`<span class="em art">${animalSVG(c.a)}</span>`:`<span class="em polo av">${avatarSVG(POLO,'angry')}</span>`;
-  return `<div class="card ${extra}" data-id="${c.id}" style="--c:${CARD_COLORS[(c.a*5)%6]}">${art}<span class="nm">${A[0]}</span></div>`;
+  const A=ANIMALS[c.a],art=ARTS[A[0]]?`<span class="em art">${animalSVG(A[0])}</span>`:`<span class="em polo av">${avatarSVG(POLO,'angry')}</span>`;
+  return `<div class="card ${extra}" data-id="${c.id}" style="--c:${CARD_COLORS[(c.a*5)%6]}">${art}<span class="nm${A[0].length>10&&!A[0].includes(' ')?' long':''}">${A[0]}</span></div>`;
 }
 const arrowL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l-6 6 6 6"/></svg>';
 const arrowR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6l6 6-6 6"/></svg>';
 function renderHead(ex='neutral'){
+  $('#modeBadge').hidden=G.mode!=='tigre';
   $('#curAv').innerHTML=avatarSVG(P().av,ex);$('#curName').textContent=P().name;
   $('#pips').innerHTML=[0,1,2].map(i=>`<span class="pip ${i<G.streak?'on':''}"></span>`).join('');
 }
@@ -745,7 +872,7 @@ $('#btnMoins').onclick=()=>play('moins');
 
 async function play(dir){
   if(!sel||busy)return;busy=true;markSel();
-  const {r,side}=sel,row=G.rows[r],ref=side==='L'?row[0]:row[row.length-1],card=draw();
+  const {r,side}=sel,row=G.rows[r],ref=side==='L'?row[0]:row[row.length-1],card=G.mode==='tigre'?drawBoost(ref):draw();
   if(side==='L')row.unshift(card);else row.push(card);
   Snd.fx('draw');renderBoard({newId:card.id,scroll:{r,side}});
   document.querySelectorAll('.zone').forEach(z=>z.classList.remove('on'));
